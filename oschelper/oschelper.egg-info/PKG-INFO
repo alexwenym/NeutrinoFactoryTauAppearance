@@ -1,0 +1,6 @@
+Metadata-Version: 2.1
+Name: oschelper
+Version: 0.1
+Summary: Helper functions for Neutrino Oscillation Interpolation
+Author: Gray Putnam
+Requires-Dist: numpy

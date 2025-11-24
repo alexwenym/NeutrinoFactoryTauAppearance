@@ -1,0 +1,8 @@
+setup.py
+oschelper.egg-info/PKG-INFO
+oschelper.egg-info/SOURCES.txt
+oschelper.egg-info/dependency_links.txt
+oschelper.egg-info/not-zip-safe
+oschelper.egg-info/requires.txt
+oschelper.egg-info/top_level.txt
+src/oschelper.C
