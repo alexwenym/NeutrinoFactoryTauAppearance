@@ -63,7 +63,7 @@ class totalXS:
                 RuntimeWarning
             )
             
-    def get_range():
+    def get_range(self):
         return [[self._min_x_nu, self._max_x_nu],[self._min_x_nubar, self._max_x_nubar]]
     
     def sigma_nu(self, x):
