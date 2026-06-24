@@ -19,6 +19,7 @@ far detector?
 | [04-decisions.md](04-decisions.md) | Design/physics decisions and their rationale (ADR-lite) |
 | [05-open-questions.md](05-open-questions.md) | Unresolved physics & feasibility questions |
 | [06-simulation-design.md](06-simulation-design.md) | The Monte Carlo chain, v1 scope, and the MCS feasibility caveat |
+| [07-cluster-handoff.md](07-cluster-handoff.md) | **Start here on the cluster** — current state, env setup, and the alouette swap task |
 
 ## Conventions
 - **Status tags:** ✅ done · 🚧 in progress · ⬜ not started · ❓ open question · 🐛 known bug

@@ -2,6 +2,16 @@
 
 Newest first. One entry per meaningful chunk of work.
 
+## 2026-06-24
+- Forked nickkamp1's repo to **alexwenym/NeutrinoFactoryTauAppearance**; rewired
+  remotes (`origin`=fork, `upstream`=nickkamp1). Committed the v1 sim + docs (`b5008d9`)
+  and pushed to the fork. Build artifacts gitignored.
+- Decided to do the **alouette** (TAUOLA) τ-decay swap **on the Linux cluster**
+  (alouette has no Apple-Silicon wheel; Linux x86_64 wheel exists).
+- Wrote [07-cluster-handoff.md](07-cluster-handoff.md) so the cluster agent can pick up:
+  env setup, the alouette API, the two open decisions (τ polarization; direct vs pool),
+  and verification steps.
+
 ## 2026-06-22
 - **First working build** of the ν_μ→ν_τ appearance muon distribution at the detector
   plane, built on the existing flux/osc/xs code. New files:
