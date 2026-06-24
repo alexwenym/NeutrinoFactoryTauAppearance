@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 
 # XS are digitized from https://arxiv.org/pdf/2409.01258

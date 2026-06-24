@@ -1,1 +1,5 @@
 __pycache__
+.venv/
+tau_muons_detector_plane.pdf
+oschelper/build/
+*.egg-info/
