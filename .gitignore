@@ -3,3 +3,8 @@ __pycache__
 tau_muons_detector_plane.pdf
 oschelper/build/
 *.egg-info/
+# GENIE checkout + DIS tables (~0.9 GB, regenerated/synced separately; symlinked at
+# resources/diffxsec). See memory genie-diffxsec-setup.
+software/
+# Claude Code session/job artifacts
+.claude/
