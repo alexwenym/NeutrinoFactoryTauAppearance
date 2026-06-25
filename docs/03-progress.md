@@ -2,7 +2,79 @@
 
 Newest first. One entry per meaningful chunk of work.
 
-## 2026-06-24
+## 2026-06-24 (cluster) — beam/baseline CLI + idealized detector-plane layer
+- Added a CLI to `compare.py` (`--emuon`, `--baseline` [km], `--nusign`, `--deltacp`,
+  `--n-mc`, `--seed`) for L–E scans; `Emuon`/`baseline` were already parameters threading
+  through flux/osc/σ/kinematics (verified: 50 GeV/2000 km narrows angles ~1/E, shifts the
+  osc point). No physics change.
+- New `detector.py`: the simulation output already **is** a truth-level detection plane
+  (per-muon θ, r, φ, E_μ). `apply_detector(out, ...)` is an off-by-default downstream
+  "LArTPC" response — footprint (record-all / cut-later), Gaussian θ & E smearing
+  (sigma_theta folds TPC + rock-MCS), energy threshold; adds `det_frac`. Wired as an
+  optional `detector=` kwarg in `run_comparison` (`_channel_weight` folds in `det_frac`).
+  Per the user: pheno only, plane formalized first, smearing/footprint left off for now.
+
+## 2026-06-24 (cluster) — wired in GENIE differential cross sections
+- **Replaced the analytic DIS stand-in with GENIE double-differential d²σ/dx dy tables**
+  (tune G18_02a, E=5–200 GeV; produced by a separate agent via a custom `gDISDiffXSec`
+  app). Symlinked `resources/diffxsec -> software/diffxsec/tables`. `dis_kinematics.py`
+  gained `TableDISModel` (loads CC **isoscalar (p+n)/2** on the native 35×50×45 (E,x,y)
+  grid; default model) and a **grid-based `DISSampler`** (cell-width-weighted CDFs);
+  `AnalyticDISModel` kept as a fallback (`set_model`). σ(E) now integrates the tables.
+- `simulate_tau_muons` now takes σ_τ from the GENIE tables (`dis.sigma`), dropping the
+  digitized `totalXS` dependency (kept only as a self-test cross-check: GENIE DIS vs
+  digitized total ν_τ CC agree ~5% at 25–50 GeV, ~30% near 10 GeV threshold).
+- **Key correction from real data:** the **τ production angle is ~93 mrad** (the τ mass
+  forces Q²≳m_τ²), not the stand-in's ~12 mrad — the τ is not ultra-forward. Updated
+  numbers (Emuon=25, L=1300): S/B≈**1.5e-3**, halo median θ 116, core 102 mrad,
+  **KS(θ)=0.076** (cores are broad from DIS p_T, so separation is modest — leans on the
+  full 2D shape). ν_τ ⟨y⟩=0.37 (τ-mass-suppressed vs numu 0.51).
+
+## 2026-06-24 (cluster) — DIS background core + DIS production upgrade
+- **Built the direct-ν_μ CC "core"** background and **upgraded both channels to full DIS
+  production** (signal τ was previously collinear). New `dis_kinematics.py`:
+  samples (x, y) from a double-differential d²σ/dx dy model → outgoing lepton
+  `(E_lep, θ, φ)` via exact massive-lepton kinematics (`Q²=2 M_N x y E`,
+  `cosθ=(2EE'−Q²−m²)/(2E p')`); σ(E) by integrating the same differential. **Renamed
+  from `dis.py`** (shadowed stdlib `dis`, broke `inspect`/numpy import).
+- ⚠️ **The d²σ/dx dy splines (νμ,ν̄μ,ντ,ν̄τ,νe,ν̄e CC) are not yet delivered.** An
+  `AnalyticDISModel` (LO valence+sea) stand-in drives the pipeline meanwhile; swap via
+  `dis_kinematics.set_model(SplineDISModel(...))` (`load_xsec_splines` is a stub pending
+  the file format).
+- `simulate.py`: factored shared geometry into `_project_to_detector`; added
+  `_compose_directions` (composes the τ production angle with the τ→μ decay kick, unit-
+  tested); upgraded `simulate_tau_muons` to DIS τ production; added
+  `simulate_numu_cc_muons` (prompt DIS muon, ν_μ survival `|amp[1]|²`, `osc_on` toggle
+  for the brighter no-appearance core). Both now return `w_integral`.
+- `compare.py` (new, **no plots** per request): numeric core-vs-halo separability —
+  S/B rate ratio, θ-shape metrics (KS, tail fractions), and a per-exposure Asimov q0.
+- **First numbers** (stand-in, Emuon=25, L=1300 km): S/B = W_halo/W_core ≈ **9.6e-4**;
+  halo median θ ≈ 97 mrad (90% 261), core ≈ 79 mrad (90% 220); KS(θ)=0.10. DIS
+  inelasticity lowers E_τ (~0.55 E_ν) so the decay cone widens (53→97 mrad). Stand-in
+  ⟨x⟩≈0.27 is hard, so the core width is an upper estimate — real splines will sharpen it.
+  Validation: ⟨y⟩ 0.48/0.33 (ν/ν̄); σ_μ/E=0.677 (PDG); σ_τ rises with E (threshold).
+
+## 2026-06-24 (cluster)
+- **Swapped the analytic Michel τ-decay in `tau_decay.py` for alouette** (TAUOLA
+  wrapper, v1.0.1). Run taus at rest, keep muon-PID products (realizes the leptonic
+  BR ≈ 0.177), boost a precomputed **rest-frame pool** (100k) along the beam — keeps
+  the per-event path vectorized despite alouette being single-threaded (~5e4 decays/s).
+  τ polarization = **fixed helicity** (−1 for τ⁻, +1 for τ⁺, V−A); `polarization=0`
+  recovers the unpolarized spectrum. `decay_to_muon` gained optional `nusign`/
+  `polarization` kwargs (interface preserved); `simulate.py` now passes `nusign` so
+  antineutrino running gets τ⁺ polarization.
+- **Verified:** unpolarized alouette ⟨x⟩=0.707 ≈ Michel 0.70; ⟨cosθ*⟩ = 0 / ∓0.11 for
+  helicity 0 / ∓1; lab ⟨E_μ⟩/E_τ = 0.354 unpol → 0.405 with V−A. End-to-end `simulate.py`
+  unpolarized reproduces Michel v0 (acceptance 0.264 vs 0.261, median θ 59 vs 60 mrad,
+  median r 0.43 m); V−A shifts muons forward (acceptance 0.302, median θ 53 mrad).
+- **Fixed the `oschelper` build on the cluster:** the installed `.so` failed import
+  (`undefined symbol: _ZTVSt9basic_ios...`, a libstdc++ vtable) — the `.C` source is
+  C++ but setuptools linked with `gcc -shared`. Rebuilt with `LDSHARED="g++ -shared"
+  CC=g++ pip install --no-build-isolation ./oschelper`. `do_osc` now imports.
+- Env note: cluster venv is **py3.8** (docs elsewhere said 3.9); alouette 1.0.1 was
+  already installed.
+
+## 2026-06-24 (laptop)
 - Forked nickkamp1's repo to **alexwenym/NeutrinoFactoryTauAppearance**; rewired
   remotes (`origin`=fork, `upstream`=nickkamp1). Committed the v1 sim + docs (`b5008d9`)
   and pushed to the fork. Build artifacts gitignored.

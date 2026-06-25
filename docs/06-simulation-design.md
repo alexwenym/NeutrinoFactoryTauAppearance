@@ -47,7 +47,11 @@ correlation) is more discriminating than either alone.
 7. **Sensitivity**: χ²/likelihood across (x, θ) bins, with-osc vs no-ν_μ→ν_τ.
 
 ## v1 simplifications (explicit)
-- Assume detector angular resolution is sufficient → **no detector smearing**.
+- Detector = an **idealized detection plane** (`detector.py`): the sim records truth-level
+  θ, r, φ, E_μ for every muon crossing the plane. A downstream `apply_detector` hook adds
+  an optional footprint + Gaussian θ/E smearing + threshold (pheno-level, **off by
+  default** for now — "record all, cut later"). `sigma_theta` is meant to carry the TPC
+  resolution **and** rock MCS in quadrature.
 - **No multiple Coulomb scattering** in v1 (deferred to the realism pass).
 - **Muon range IS kept** even in v1 — it is what bounds "all along the beam." A muon
   is accepted only if its production point is within range of the detector

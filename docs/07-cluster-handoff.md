@@ -2,7 +2,16 @@
 
 For the agent picking this up on the Linux cluster. Written 2026-06-24.
 
-## TL;DR
+## ✅ DONE 2026-06-24 (on the cluster): the alouette swap
+`tau_decay.py` now decays τ's with **alouette** (pooled, fixed-helicity V−A) and is
+validated against the Michel limits — see [03-progress.md](03-progress.md) and
+[04-decisions.md](04-decisions.md). The `oschelper` build was also fixed (libstdc++
+link, `LDSHARED="g++ -shared"`). The rest of this doc is kept as the original handoff
+record; **the live next steps are now the deferred physics in
+[02-roadmap.md](02-roadmap.md)** (direct-ν_μ CC background core for the with/without-osc
+comparison, absolute normalization, MCS realism).
+
+## TL;DR (original)
 A working v1 of the ν_μ→ν_τ appearance-muon simulation exists and runs (commit
 `b5008d9` on `origin/main` = `alexwenym/NeutrinoFactoryTauAppearance`). The **next
 task** is to replace the analytic Michel τ-decay in `tau_decay.py` with **alouette**
@@ -28,8 +37,12 @@ git clone https://github.com/alexwenym/NeutrinoFactoryTauAppearance.git
 cd NeutrinoFactoryTauAppearance
 python3 -m venv .venv && . .venv/bin/activate
 pip install numpy matplotlib alouette          # alouette: Linux x86_64 wheel exists
-pip install --no-build-isolation ./oschelper   # rebuild the C ext for the cluster Python
+LDSHARED="g++ -shared" CC=g++ pip install --no-build-isolation ./oschelper  # see note
 ```
+**`oschelper` C++ link fix:** the `.C` source is C++; a plain build links with
+`gcc -shared` and import fails with `undefined symbol: _ZTVSt9basic_ios...` (missing
+libstdc++). Forcing `LDSHARED="g++ -shared"` fixes it. (Cluster venv is py3.8; alouette
+1.0.1 was already present in the existing `.venv`.)
 Notes / gotchas carried over from the laptop:
 - `oschelper` MUST be rebuilt per-machine. The committed history had a dead build for
   another Python; the build dir is now gitignored. `--no-build-isolation` is required

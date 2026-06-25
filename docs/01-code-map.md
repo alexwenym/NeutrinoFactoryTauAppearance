@@ -35,28 +35,56 @@ Analytic lab-frame flux from muon decay (Geer-style), **fully angle-resolved**.
 Gray Putnam's extension integrating the Schrödinger equation step-by-step along the
 baseline. `do_osc(E, steps, density, U, MP, dm21, dm31, dm41, nuind, dL)`.
 - Initial flavor set by `nuind` (0=e, 1=μ, 2=τ). Output `(4, N_E)` complex amplitudes.
-- Built `.so` present under `oschelper/build/`. Rebuild: `cd oschelper && pip install -e .`
+- Rebuild per-machine (the `.C` source is C++, so force g++ for the link step):
+  `LDSHARED="g++ -shared" CC=g++ pip install --no-build-isolation ./oschelper`.
+  A plain build links with `gcc -shared` and import fails with
+  `undefined symbol: _ZTVSt9basic_ios...` (missing libstdc++).
 
-## `tau_decay.py` — τ→μ leptonic decay kinematics ✅ (NEW)
-- `sample_michel_x` — Michel spectrum 2x²(3−2x); `decay_to_muon(E_tau, rng)` →
-  lab-frame muon (E_μ, θ, φ) via isotropic rest-frame emission + boost.
-- Constants `M_TAU`, `M_MU`, `BR_TAU_TO_MU`. v1: unpolarized, massless-μ.
+## `tau_decay.py` — τ→μ leptonic decay kinematics ✅ (alouette)
+- `decay_to_muon(E_tau, rng, nusign=1, polarization=None)` → lab-frame muon
+  (E_μ, θ, φ). Uses **alouette** (TAUOLA): taus decayed at rest, muon-PID products
+  kept (realizes the leptonic BR), boosted along the beam. Full muon kinematics
+  (massive μ, radiative corrections, τ-spin↔μ-direction correlation).
+- **Rest-frame pool** (`POOL_SIZE=100k`, cached in `_POOLS` by charge+helicity):
+  built once via `_build_pool`/`_get_pool`, then sampled+boosted per event — alouette
+  is single-threaded (~5e4 decays/s) so the pool keeps the hot path vectorized.
+- τ polarization = fixed helicity: default −1 for τ⁻ / +1 for τ⁺ (V−A);
+  `polarization=0.0` → unpolarized (cross-checks Michel ⟨x⟩=0.70).
+- `sample_michel_x` kept as the analytic massless reference. Constants `M_TAU`,
+  `M_MU`, `BR_TAU_TO_MU`. v1 still assumes τ collinear with ν (E_τ=E_ν), set in
+  `simulate.py`.
 
-## `simulate.py` — MC driver for the (position, angle) distribution ✅ (NEW)
+## `dis_kinematics.py` — DIS production kinematics + σ ✅ (GENIE tables)
+- `sample_dis_lepton(E_nu, rng, channel)` → outgoing CC lepton `(E_lep, θ, φ)` (θ from
+  the beam) by sampling (x, y) from d²σ/dx dy and exact massive-lepton kinematics
+  (`Q²=2 M_N x y E`). `sigma(E, channel)` integrates the same differential (1e-38 cm²).
+- **`TableDISModel`** (default) loads GENIE CC tables from `resources/diffxsec`
+  (→ `software/diffxsec/tables`), **isoscalar (p+n)/2**, native 35×50×45 (E,x,y) grid
+  (E 5–200 GeV log, x 1e-3–0.95 log, y 0.01–0.99 lin), units cm². `DISSampler` builds
+  cell-width-weighted per-E-node 2D CDFs and samples within cells.
+- `AnalyticDISModel` (LO valence+sea) is a fallback; `set_model(...)` swaps it.
+- Channels `numu, numubar, nutau, nutaubar, nue, nuebar`. Named `dis_kinematics` (not
+  `dis`) to avoid shadowing stdlib `dis`. (Tables are DIS-only ≥5 GeV; no QE/RES.)
+
+## `simulate.py` — MC drivers for the (position, angle) distribution ✅
 - `muon_range(E_mu)` — CSDA range in standard rock (a+bE model).
-- `simulate_tau_muons(...)` — wires `flux.numu_flux` × P(ν_μ→ν_τ) (`osc`, nuind=1,
-  index 2) × `totalXS.sigma` → `tau_decay` → range-bounded geometry; returns
-  per-muon (r, θ, energies) at the detector plane. `__main__` saves
-  `tau_muons_detector_plane.pdf`.
-- ⬜ Direct-ν_μ CC core (for the with/without-osc comparison) not yet added.
-- ⬜ Absolute normalization (n_target, area, time) — weights are relative for now.
+- `_project_to_detector(E_mu, θ, dmax, n_mc, rng)` — shared production-point + forward/
+  range acceptance + `r=d·tanθ`. `_compose_directions(...)` — composes a parent
+  production angle with a decay angle (unit-tested).
+- `simulate_tau_muons(...)` — `numu_flux` × P(ν_μ→ν_τ) (`osc` index 2) × `dis.sigma`
+  (GENIE ν_τ DIS) → **DIS τ production** (`dis_kinematics`, E_τ=(1−y)E_ν + angle) →
+  `tau_decay` → compose → geometry. Returns per-muon (r, θ, E) + `w_integral` + `BR`.
+- `simulate_numu_cc_muons(..., osc_on=True)` — direct-ν_μ CC core: P(ν_μ→ν_μ) (index 1,
+  or 1 if `osc_on=False`) × `dis.sigma(numu)` → prompt DIS muon → geometry.
+- ⬜ Absolute normalization (n_target, area, time) — weights relative; ratio is correct.
 
 ## `cross_sections.py` — ν_τ CC cross sections ✅
 - `totalXS` class: interpolates digitized ν_τ / ν̄_τ CC σ (arXiv:2409.01258 Fig. 4).
 - `sigma_nu`, `sigma_nubar`, `sigma(x, is_nubar)`; units E [GeV], σ [1e-38 cm²].
 - Data in `resources/nutau_xs.txt`, `resources/nutaubar_xs.txt`.
 - ✅ `import warnings` bug fixed (2026-06-22).
-- ⬜ Not yet wired into `rates.py` (but now used by `simulate.py`).
+- Now used only as a **cross-check** of the GENIE ν_τ DIS σ (see `dis_kinematics`
+  self-test); `simulate.py` takes σ from the GENIE tables.
 
 ## `rates.py` — event rates 🚧
 `TauAppearanceRates`: combines flux × solid angle × P over a set of δ_CP values.
@@ -66,6 +94,23 @@ baseline. `do_osc(E, steps, density, U, MP, dm21, dm31, dm41, nuind, dL)`.
   must index the τ component (2).
 - ⬜ No cross-section multiplication → not yet an actual event rate.
 - ⬜ No τ→μ decay step → does not yet model the real observable.
+
+## `detector.py` — idealized detection-plane ("LArTPC") layer ✅ (off by default)
+- The sim output dict **is** the detection-plane readout (per-muon truth θ, r, φ, E_μ for
+  every muon reaching the plane). `apply_detector(out, ...)` is a downstream,
+  truth-preserving response: optional **footprint** (circular `radius` or rectangular
+  `half_width`/`half_height` on the crossing position), **Gaussian smearing**
+  (`sigma_theta` per-projection — fold TPC + rock-MCS in quadrature; `sigma_E_frac`), and
+  `E_threshold`. All off by default → no-op passthrough. Adds `det_frac` (survival).
+- `compare.run_comparison(..., detector=dict(...))` applies it to every sample; the
+  channel rate (`_channel_weight`) folds in `det_frac`. Pheno-level only (no detector MC).
+
+## `compare.py` — numeric core-vs-halo separability ✅ (no plots)
+- `run_comparison(...)` runs halo + core(osc) + core(no-osc); reports S/B rate ratio
+  (`W_halo/W_core`), θ-shape metrics (KS, tail fractions), and a per-exposure Asimov
+  `q0` (absolute Z needs the deferred normalization K). Plots intentionally deferred.
+- CLI for L–E scans: `python compare.py --emuon 50 --baseline 2000 [--nusign ±1
+  --deltacp --n-mc --seed]` (baseline in km). Both knobs thread through flux/osc/σ/kin.
 
 ## Supporting files
 - `Sandbox.ipynb` — scratch/exploration notebook (large).

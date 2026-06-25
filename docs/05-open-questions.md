@@ -15,8 +15,10 @@ relevant doc and note the decision in [04-decisions.md](04-decisions.md).
 - ✅ Target region: τ's produced **all along the beam** (upstream rock + detector),
   bounded in practice by muon range.
 - ✅ Comparison: with ν_μ→ν_τ oscillation vs without (Milestone 1 channel = ν_μ→ν_τ).
-- ❓ τ production kinematics fidelity: collinear E_τ≈E_ν (v0) → inelasticity model
-  (v1) → full generator (GENIE)? (still open)
+- ✅ τ production kinematics — RESOLVED 2026-06-24: full DIS production from **GENIE
+  d²σ/dx dy tables** (`resources/diffxsec`), same source for the ν_μ core and σ. The real
+  τ production angle is ~93 mrad (τ-mass Q² floor), not ultra-forward. ❓ remaining:
+  QE/RES below the DIS region (unmodeled, low weight at the ~12–24 GeV bulk).
 
 ## Modeling choices to settle
 - ❓ Where do the τ's interact/decay — in the detector volume, or along a region of
@@ -25,8 +27,10 @@ relevant doc and note the decision in [04-decisions.md](04-decisions.md).
   on-/off-axis placement. What benchmark detector do we target?
 - ❓ Which beam normalization (`accelerator` / `dump` / `baseline`) and E_μ (25 vs 50
   GeV) and baseline L do we anchor the headline result to?
-- ❓ Do we need τ polarization in the decay spectrum, or is the unpolarized Michel
-  spectrum sufficient at first pass?
+- ✅ τ polarization — RESOLVED 2026-06-24: `tau_decay.py` uses alouette with **fixed
+  helicity** (−1 τ⁻ / +1 τ⁺, V−A). It shifts muons forward (lab ⟨E_μ⟩/E_τ 0.354→0.405,
+  median θ 59→53 mrad) so it is kept on by default. ❓ remaining: **energy-dependent**
+  CC polarization (Hagiwara et al.) instead of the fixed-helicity approximation.
 
 ## Validation
 - ❓ Does our `oschelper`-based P(ν_e→ν_τ) agree with the legacy nuSQuIDS results
