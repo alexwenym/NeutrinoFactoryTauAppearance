@@ -52,7 +52,9 @@ correlation) is more discriminating than either alone.
   an optional footprint + Gaussian θ/E smearing + threshold (pheno-level, **off by
   default** for now — "record all, cut later"). `sigma_theta` is meant to carry the TPC
   resolution **and** rock MCS in quadrature.
-- **No multiple Coulomb scattering** in v1 (deferred to the realism pass).
+- **Multiple Coulomb scattering** now available (analytical Highland, `mcs=True`, off by
+  default) — smears the arrival angle and landing position over the rock path; see the
+  progress log. Full Moliere tails / range straggling remain a PROPOSAL-level upgrade.
 - **Muon range IS kept** even in v1 — it is what bounds "all along the beam." A muon
   is accepted only if its production point is within range of the detector
   (~19 m at 10 GeV, ~87 m at 50 GeV in rock). Without it the off-axis halo gets

@@ -37,18 +37,21 @@ def _norm_hist2d(r, theta, r_edges, th_edges):
 
 def run_comparison(Emuon=25.0, baseline=1300e3, nusign=1, deltaCP=0.0,
                    n_mc=2_000_000, seed=0, n_rbins=40, n_thbins=40, verbose=True,
-                   detector=None):
+                   detector=None, mcs=False):
     """Run halo + core (osc) + core (no-osc) and report separability numbers.
 
+    mcs: apply Highland multiple-Coulomb scattering in the rock (propagation physics).
     detector: optional dict of detector.apply_detector kwargs (footprint/smearing/
     threshold) applied to every sample. None -> truth-level detection plane (default).
     """
     halo = simulate_tau_muons(Emuon=Emuon, baseline=baseline, deltaCP=deltaCP,
-                              nusign=nusign, n_mc=n_mc, seed=seed)
+                              nusign=nusign, n_mc=n_mc, seed=seed, mcs=mcs)
     core = simulate_numu_cc_muons(Emuon=Emuon, baseline=baseline, deltaCP=deltaCP,
-                                  nusign=nusign, n_mc=n_mc, seed=seed + 1, osc_on=True)
+                                  nusign=nusign, n_mc=n_mc, seed=seed + 1, osc_on=True,
+                                  mcs=mcs)
     core0 = simulate_numu_cc_muons(Emuon=Emuon, baseline=baseline, deltaCP=deltaCP,
-                                   nusign=nusign, n_mc=n_mc, seed=seed + 2, osc_on=False)
+                                   nusign=nusign, n_mc=n_mc, seed=seed + 2, osc_on=False,
+                                   mcs=mcs)
 
     if detector is not None:
         from detector import apply_detector
@@ -131,10 +134,12 @@ if __name__ == "__main__":
     p.add_argument("--nusign", type=int, default=1, choices=(1, -1),
                    help="+1 = neutrino (mu- beam), -1 = antineutrino (mu+ beam)")
     p.add_argument("--deltacp", type=float, default=0.0, help="delta_CP [rad]")
+    p.add_argument("--mcs", action="store_true",
+                   help="apply Highland multiple-Coulomb scattering in the rock")
     p.add_argument("--n-mc", type=int, default=2_000_000, dest="n_mc",
                    help="Monte Carlo events per channel")
     p.add_argument("--seed", type=int, default=0)
     a = p.parse_args()
 
     run_comparison(Emuon=a.emuon, baseline=a.baseline * 1e3, nusign=a.nusign,
-                   deltaCP=a.deltacp, n_mc=a.n_mc, seed=a.seed)
+                   deltaCP=a.deltacp, n_mc=a.n_mc, seed=a.seed, mcs=a.mcs)

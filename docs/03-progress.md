@@ -2,6 +2,20 @@
 
 Newest first. One entry per meaningful chunk of work.
 
+## 2026-06-24 (cluster) — multiple Coulomb scattering (MCS) in rock
+- Added analytical **Highland MCS** to the muon propagation (`simulate._project_to_detector`,
+  toggled by `mcs=` on the sims / `run_comparison` / `--mcs`; default off to preserve the
+  truth-level baseline). Per-event, path-dependent: σ_θ integrated over the rock path
+  d/cos θ **including ionization energy loss** (E_arr = E0 − dE/dx·L), so muons produced
+  further upstream — and softer muons — scatter more. Smears **both** the arrival angle
+  (RMS σ_θ per projection plane) **and**, correlated (ρ=√3/2), the landing position
+  (RMS L·σ_θ/√3). Constants: X0=10.02 cm, dE/dx=5.3 MeV/cm (standard rock).
+- Validated: σ_θ ≈ 12–35 mrad/plane for muons comfortably crossing the rock (matches the
+  `docs/06` ~20 mrad estimate), diverging for near-stopping muons (floored). Effect on the
+  result: halo/core median θ each broaden ~7–9 mrad (MCS adds in quadrature to the ~100
+  mrad DIS angle); **separability preserved** (KS(θ) 0.077→0.084) — MCS does not wash out
+  the halo. Full Moliere tails + range straggling remain a PROPOSAL-level upgrade.
+
 ## 2026-06-24 (cluster) — beam/baseline CLI + idealized detector-plane layer
 - Added a CLI to `compare.py` (`--emuon`, `--baseline` [km], `--nusign`, `--deltacp`,
   `--n-mc`, `--seed`) for L–E scans; `Emuon`/`baseline` were already parameters threading

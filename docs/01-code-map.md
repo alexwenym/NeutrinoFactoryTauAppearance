@@ -68,9 +68,13 @@ baseline. `do_osc(E, steps, density, U, MP, dm21, dm31, dm41, nuind, dL)`.
 
 ## `simulate.py` — MC drivers for the (position, angle) distribution ✅
 - `muon_range(E_mu)` — CSDA range in standard rock (a+bE model).
-- `_project_to_detector(E_mu, θ, dmax, n_mc, rng)` — shared production-point + forward/
-  range acceptance + `r=d·tanθ`. `_compose_directions(...)` — composes a parent
-  production angle with a decay angle (unit-tested).
+- `_project_to_detector(E_mu, θ, φ, dmax, n_mc, rng, mcs=False)` — shared production-point
+  + forward/range acceptance + `r=d·tanθ`. With `mcs=True` adds Highland MCS in rock over
+  the path d/cosθ (`_mcs_sigma_theta_plane`, energy-loss-integrated): smears arrival angle
+  and, correlated, the landing position; upstream/softer muons scatter more. `mcs` toggles
+  through both sims / `run_comparison` / `compare.py --mcs` (default off).
+  `_compose_directions(...)` — composes a parent production angle with a decay angle
+  (unit-tested).
 - `simulate_tau_muons(...)` — `numu_flux` × P(ν_μ→ν_τ) (`osc` index 2) × `dis.sigma`
   (GENIE ν_τ DIS) → **DIS τ production** (`dis_kinematics`, E_τ=(1−y)E_ν + angle) →
   `tau_decay` → compose → geometry. Returns per-muon (r, θ, E) + `w_integral` + `BR`.
