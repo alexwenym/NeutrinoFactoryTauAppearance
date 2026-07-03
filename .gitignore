@@ -1,6 +1,8 @@
 __pycache__
 .venv/
 tau_muons_detector_plane.pdf
+detector_plane_hits.png
+detector_plane_hits.pdf
 oschelper/build/
 *.egg-info/
 # GENIE checkout + DIS tables (~0.9 GB, regenerated/synced separately; symlinked at
