@@ -2,6 +2,21 @@
 
 Newest first. One entry per meaningful chunk of work.
 
+## 2026-06-24 (cluster) — (L, E) scan: long baseline is favorable (Z up to ~4.6σ)
+- New `scan.py`: halo-detection Z(r,θ,E) over beam energy (log 25–200 GeV) × baseline
+  (500–5000 km), accelerator beam, 100 m²×10 yr, MCS + LArTPC. Heatmap `scan_LE.png`
+  with the Fermilab→Seattle chord (2723 km) marked.
+- **Z grows ~linearly with L** (verified): the halo rate is ~L-independent (P(ν_μ→ν_τ) ∝
+  L² on the oscillation *rising slope* cancels the 1/L² flux — the first osc max is at
+  L/E≈491 km/GeV, i.e. ≥ Earth diameter for E≥25 GeV, so we never reach/pass it), while
+  the core ∝ 1/L² drops. So S/B ∝ L², Z ∝ L. Confirmed against the full matter calc:
+  P(ν_μ→ν_τ) at 45 GeV rises monotonically 0.001→0.51 over 500→12000 km.
+- **Best in-grid: E≈57 GeV, L=5000 km → Z≈4.65σ**; broad E optimum ~50–90 GeV;
+  Fermilab→Seattle (~2723 km) ≈ 2.5σ. Z ∝ √(area·years).
+- README rewritten with the full result summary. `plots.py` parametrized (Emuon,
+  baseline); optimum distributions `detector_plane_optimum.png` show S/B≈6e-3 (4× the
+  nominal) with the halo-only curve overlaid. Plots gitignored.
+
 ## 2026-06-24 (cluster) — muon energy added to the discriminant (~2x significance)
 - The muon **energy at the detector plane** is now the third observable.
   `_project_to_detector` returns the **arrival energy** (production − ionization loss

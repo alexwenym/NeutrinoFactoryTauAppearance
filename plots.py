@@ -65,7 +65,9 @@ def make_plots(Emuon=25.0, baseline=1300e3, n_mc=1_500_000, seed=0,
         a.set_title(ttl)
         a.legend()
 
-    # --- absolute spectra: signal buried under the core (the ~0.5-sigma story) ---
+    # --- absolute spectra: core, core+halo, and the halo alone (the signal) ---
+    sb = N_halo / N_core if N_core else 0.0
+
     def abs_spectrum(a, key, scale, bins, xlabel, ttl):
         pc, _ = np.histogram(core[key] * scale, bins=bins, density=True)
         ph, _ = np.histogram(halo[key] * scale, bins=bins, density=True)
@@ -74,6 +76,8 @@ def make_plots(Emuon=25.0, baseline=1300e3, n_mc=1_500_000, seed=0,
         a.step(ctr, N_core * pc * w, color="C0", lw=1.8, where="mid", label="core")
         a.step(ctr, (N_core * pc + N_halo * ph) * w, color="C3", lw=1.3, where="mid",
                label="core + halo")
+        a.step(ctr, N_halo * ph * w, color="C1", lw=1.3, ls="--", where="mid",
+               label="halo only")
         a.set_yscale("log")
         a.set_xlabel(xlabel)
         a.set_ylabel("muons / bin  (100 m$^2\\times$10 yr)")
@@ -81,9 +85,9 @@ def make_plots(Emuon=25.0, baseline=1300e3, n_mc=1_500_000, seed=0,
         a.legend()
 
     abs_spectrum(ax[0, 2], "theta", 1e3, thb, r"arrival angle $\theta$ [mrad]",
-                 r"absolute angle: signal excess tiny (S/B$\approx$1.5$\times10^{-3}$)")
+                 r"absolute angle  (S/B$\approx$%.1e)" % sb)
     abs_spectrum(ax[1, 2], "r", 1.0, rb, "transverse offset $r$ [m]",
-                 "absolute radial: signal buried under the core")
+                 "absolute radial  (halo peaks off-axis vs core)")
 
     fig.suptitle(r"Detector-plane muon hits, $E_\mu=%.0f$ GeV, L=%.0f km "
                  r"(MCS + nominal LArTPC);  $N_{halo}\approx%.0f$, $N_{core}\approx%.0f$ "

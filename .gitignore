@@ -3,6 +3,11 @@ __pycache__
 tau_muons_detector_plane.pdf
 detector_plane_hits.png
 detector_plane_hits.pdf
+detector_plane_optimum.png
+detector_plane_optimum.pdf
+scan_LE.png
+scan_LE.pdf
+scan_LE.npz
 oschelper/build/
 *.egg-info/
 # GENIE checkout + DIS tables (~0.9 GB, regenerated/synced separately; symlinked at
