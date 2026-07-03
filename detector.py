@@ -11,9 +11,9 @@ import numpy as np
 # apply_detector(out) returns the truth-level muons unchanged ("record all, cut later").
 #
 # This is a phenomenology-level model on purpose: simple Gaussian smearing, no detector
-# Monte Carlo. The angle is the signal observable, so sigma_theta is the key knob; note
-# the *total* angular smearing also includes multiple Coulomb scattering in the rock
-# (a separate propagation effect) -- both can be supplied here as one quadrature sigma.
+# Monte Carlo. The angle is the signal observable, so sigma_theta is the key knob. Here
+# sigma_theta is the TPC's intrinsic angular resolution ONLY; multiple Coulomb scattering
+# in the rock is a separate propagation effect applied upstream in simulate (mcs=True).
 
 
 def _smear_angle(theta, phi, sigma_theta, rng):
@@ -39,8 +39,8 @@ def apply_detector(out, rng=None, seed=0,
       half_height   -- keep |x|<=half_width and/or |y|<=half_height [m] (rectangular),
                        where x=r*cos(phi), y=r*sin(phi).
     Smearing (Gaussian; off if 0):
-      sigma_theta   -- per-projection angular resolution [rad] (fold TPC + rock MCS in
-                       quadrature here). Applied to the measured theta/phi.
+      sigma_theta   -- TPC per-projection angular resolution [rad] (intrinsic only; rock
+                       MCS is applied upstream in simulate). Applied to the measured theta.
       sigma_E_frac  -- fractional muon energy resolution (E -> E*(1+N(0,sigma_E_frac))).
     Threshold (off if 0):
       E_threshold   -- drop muons with measured E_mu < E_threshold [GeV].

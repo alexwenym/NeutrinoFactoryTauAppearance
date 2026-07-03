@@ -109,12 +109,20 @@ baseline. `do_osc(E, steps, density, U, MP, dm21, dm31, dm41, nuind, dL)`.
 - `compare.run_comparison(..., detector=dict(...))` applies it to every sample; the
   channel rate (`_channel_weight`) folds in `det_frac`. Pheno-level only (no detector MC).
 
-## `compare.py` — numeric core-vs-halo separability ✅ (no plots)
-- `run_comparison(...)` runs halo + core(osc) + core(no-osc); reports S/B rate ratio
-  (`W_halo/W_core`), θ-shape metrics (KS, tail fractions), and a per-exposure Asimov
-  `q0` (absolute Z needs the deferred normalization K). Plots intentionally deferred.
-- CLI for L–E scans: `python compare.py --emuon 50 --baseline 2000 [--nusign ±1
-  --deltacp --n-mc --seed]` (baseline in km). Both knobs thread through flux/osc/σ/kin.
+## `normalization.py` — absolute through-going-muon rate ✅
+- `muon_flux(out, Emuon, variant)` → [muons/cm²/yr] for a channel: target = **upstream
+  rock**, Φ_μ = (Nmuon/1e4)·1e-38·w_integral·n_rock·(dmax·100)·accept_frac·det_frac·BR
+  (translational-invariance through-going-muon result; size-independent). `counts(...)`
+  scales by area[m²]×years. `flux.n_muon_decays(Emuon, variant)` gives the beam intensity.
+
+## `compare.py` — core-vs-halo separability + significance ✅ (no plots)
+- `run_comparison(...)` runs halo + core(osc) + core(no-osc); reports S/B, θ-shape metrics
+  (KS, tails), **absolute counts** (via `normalization`), and the **halo-detection Asimov
+  Z** over the 2D (r,θ) plane (H1=core+halo vs H0=core, empty-core bins floored; ν_μ
+  disappearance reported separately). Z ∝ √(area·years).
+- CLI: `python compare.py [--emuon 50 --baseline 2000 --nusign ±1 --deltacp --mcs
+  --variant --area --years --sigma-theta-mrad --e-threshold --e-res --n-mc --seed]`
+  (baseline km, area m²). All thread through flux/osc/σ/kin/geometry/norm.
 
 ## Supporting files
 - `Sandbox.ipynb` — scratch/exploration notebook (large).

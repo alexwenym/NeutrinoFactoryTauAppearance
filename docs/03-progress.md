@@ -2,6 +2,25 @@
 
 Newest first. One entry per meaningful chunk of work.
 
+## 2026-06-24 (cluster) — absolute normalization + first halo-detection significance
+- New `normalization.py`: absolute **through-going-muon flux** [muons/cm²/yr] for each
+  channel. Target = **upstream rock** (detector = tracker); by transverse translational
+  invariance Φ_μ = ∫Φ_ν P σ · n_rock · R_eff · BR with R_eff = dmax·accept_frac from the
+  MC. `flux.n_muon_decays(Emuon, variant)` exposes the beam intensity
+  (accelerator ≈ 3.6e19/yr at 25 GeV, dump 4.5e16, baseline 1e15).
+- `compare.py` now reports **absolute counts and a real Asimov significance** (params
+  `variant`, `det_area_m2`, `years`; CLI `--variant --area --years` and detector
+  `--sigma-theta-mrad --e-threshold --e-res`). The detector layer is applied with a
+  nominal LArTPC (σ_θ ~3 mrad TPC-only, E>1 GeV, 15% E-res).
+- **Corrected the hypothesis test**: the Asimov Z is now **halo detection** (H1=core+halo
+  vs H0=core, same core → isolates τ appearance), floored empty core bins. The previous
+  test (vs the brighter no-osc core) was dominated by **ν_μ disappearance** (~5% core
+  dimming, ~tens of σ) — a separate, much stronger signature, now reported on its own.
+- **First result** (accelerator, 25 GeV, L=1300 km, 100 m²×10 yr, MCS + LArTPC):
+  N_halo ≈ 150, N_core ≈ 1.0e5, S/B ≈ 1.5e-3; **halo-detection Z ≈ 0.55σ** (≈ naive
+  S/√B; the overlapping core buries the halo). Z ∝ √(area·years) → ~80× exposure for 5σ.
+  Sobering but honest: disappearance is easy, the specific τ→μ halo is statistics-limited.
+
 ## 2026-06-24 (cluster) — multiple Coulomb scattering (MCS) in rock
 - Added analytical **Highland MCS** to the muon propagation (`simulate._project_to_detector`,
   toggled by `mcs=` on the sims / `run_comparison` / `--mcs`; default off to preserve the

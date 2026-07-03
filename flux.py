@@ -58,21 +58,27 @@ def numu_flux_baseline(Emuon, Pmuon, enu, costhlab, baseline):
 def nue_flux_baseline(Emuon, Pmuon, enu, costhlab, baseline):
     return nu_flux_baseline(nue_flux, Emuon, Pmuon, enu, costhlab, baseline)
 
-def nu_flux_accelerator(fluxf, Emuon, Pmuon, enu, costhlab, baseline):
+def n_muon_decays(Emuon, variant="accelerator"):
+    """Useful muon decays per year toward the target for a beam variant
+    (arXiv:2407.12450): 'accelerator' (straight section pointed at the target),
+    'dump' (beam dump), or 'baseline' (fixed 1e15 order-of-magnitude reference)."""
     G = Emuon / MU_MASS
-    Nmuon = MU_PER_BUNCH*(1e6*C_M_PER_US/CIRCUMFERENCE)*S2YR*(STRAIGHT_SECTION_ACCELERATOR/C_M_PER_US)/(MU_TAU*G)
-    #print("Nmuon_accelerator %2.2e"%Nmuon)
-    return fluxf(Emuon, Nmuon, Pmuon, enu, costhlab, baseline)
+    if variant == "accelerator":
+        return MU_PER_BUNCH*(1e6*C_M_PER_US/CIRCUMFERENCE)*S2YR*(STRAIGHT_SECTION_ACCELERATOR/C_M_PER_US)/(MU_TAU*G)
+    if variant == "dump":
+        return MU_PER_BUNCH*REPRATE*S2YR*(STRAIGHT_SECTION_DUMP/C_M_PER_US)/(MU_TAU*G)
+    if variant == "baseline":
+        return 1e15
+    raise ValueError("unknown beam variant %r" % variant)
+
+def nu_flux_accelerator(fluxf, Emuon, Pmuon, enu, costhlab, baseline):
+    return fluxf(Emuon, n_muon_decays(Emuon, "accelerator"), Pmuon, enu, costhlab, baseline)
 
 def nu_flux_dump(fluxf, Emuon, Pmuon, enu, costhlab, baseline):
-    G = Emuon / MU_MASS
-    Nmuon = MU_PER_BUNCH*REPRATE*S2YR*(STRAIGHT_SECTION_DUMP/C_M_PER_US)/(MU_TAU*G)
-    #print("Nmuon_dump / 5e14",Nmuon/5e14)
-    return fluxf(Emuon, Nmuon, Pmuon, enu, costhlab, baseline)
+    return fluxf(Emuon, n_muon_decays(Emuon, "dump"), Pmuon, enu, costhlab, baseline)
 
 def nu_flux_baseline(fluxf, Emuon, Pmuon, enu, costhlab, baseline):
-    Nmuon_baseline = 1e15
-    return fluxf(Emuon, Nmuon_baseline, Pmuon, enu, costhlab, baseline)
+    return fluxf(Emuon, n_muon_decays(Emuon, "baseline"), Pmuon, enu, costhlab, baseline)
 
 def costhcm_v(Emuon, costhlab):
     G = Emuon/MU_MASS
