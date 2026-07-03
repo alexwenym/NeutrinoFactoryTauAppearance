@@ -2,6 +2,21 @@
 
 Newest first. One entry per meaningful chunk of work.
 
+## 2026-06-24 (cluster) — muon energy added to the discriminant (~2x significance)
+- The muon **energy at the detector plane** is now the third observable.
+  `_project_to_detector` returns the **arrival energy** (production − ionization loss
+  0.53 GeV/m over the rock path), and the sim output `E_mu` is that plane energy (what a
+  tracker measures); the detector threshold/resolution act on it. Physical: core muons
+  are harder but traverse more rock, so the geometry couples with energy.
+- `compare.py` builds a **3D (r, θ, E) halo-detection Asimov** (`_asimov_Z`, general N-D)
+  and reports the incremental Z(θ) / Z(r,θ) / Z(r,θ,E). Default bins 25×25×10 (conservative
+  vs empty-bin inflation).
+- **Result** (accelerator, 25 GeV, L=1300 km, 100 m²×10 yr, MCS + LArTPC): Z(θ)=0.40,
+  Z(r,θ)=0.47, **Z(r,θ,E)=0.91σ** — the softer τ→μ energy spectrum (decay energy into two
+  unseen ν's) survives rock loss and ~**doubles** the significance. Robust to binning
+  (0.85–0.95). Cuts the 5σ exposure from ~80× to ~30× (100 m²×10 yr). Still marginal at
+  the nominal benchmark, but energy is a real handle → worth mapping over (L, E) next.
+
 ## 2026-06-24 (cluster) — absolute normalization + first halo-detection significance
 - New `normalization.py`: absolute **through-going-muon flux** [muons/cm²/yr] for each
   channel. Target = **upstream rock** (detector = tracker); by transverse translational

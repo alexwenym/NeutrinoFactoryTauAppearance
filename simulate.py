@@ -90,12 +90,19 @@ def _project_to_detector(E_mu, theta, phi, dmax, n_mc, rng, mcs=False):
     and lateral displacement (RMS L*sigma_theta/sqrt(3), correlation rho=sqrt(3)/2). Both
     grow with the path length, so muons produced further upstream scatter more.
 
-    Returns (accept, r, theta_out, phi_out, d).
+    E_mu is the production energy; the returned E_arr is the energy at the detector plane
+    (production minus ionization loss over the rock path) -- the quantity a tracker sees.
+
+    Returns (accept, r, theta_out, phi_out, E_arr, d).
     """
     d = rng.uniform(0.0, dmax, n_mc)
     forward = np.cos(theta) > 0.0
     path = np.where(forward, d / np.where(forward, np.cos(theta), 1.0), np.inf)
     accept = forward & (muon_range(E_mu) >= path)
+
+    # muon energy at the detector plane after ionization loss over the rock path
+    path_fin = np.where(np.isfinite(path), path, 0.0)
+    E_arr = np.maximum(E_mu - _DEDX_ROCK * 100.0 * path_fin, 0.0)  # GeV (path m -> cm)
 
     # straight-line arrival: transverse angle components and landing position
     ang_x = theta * np.cos(phi)
@@ -119,7 +126,7 @@ def _project_to_detector(E_mu, theta, phi, dmax, n_mc, rng, mcs=False):
     theta_out = np.hypot(ang_x, ang_y)
     phi_out = np.arctan2(ang_y, ang_x)
     r = np.hypot(pos_x, pos_y)
-    return accept, r, theta_out, phi_out, d
+    return accept, r, theta_out, phi_out, E_arr, d
 
 
 def simulate_tau_muons(Emuon=25.0, baseline=1300e3, deltaCP=0.0, nusign=1,
@@ -157,8 +164,8 @@ def simulate_tau_muons(Emuon=25.0, baseline=1300e3, deltaCP=0.0, nusign=1,
     theta, phi = _compose_directions(theta_tau, phi_tau, theta_rel, phi_rel)
 
     dmax = float(muon_range(Emuon))
-    accept, r, theta, phi, d = _project_to_detector(E_mu, theta, phi, dmax, n_mc, rng,
-                                                    mcs=mcs)
+    accept, r, theta, phi, E_mu, d = _project_to_detector(E_mu, theta, phi, dmax, n_mc,
+                                                          rng, mcs=mcs)  # E_mu -> at plane
 
     return {
         "E_nu": E_nu[accept],
@@ -210,8 +217,8 @@ def simulate_numu_cc_muons(Emuon=25.0, baseline=1300e3, deltaCP=0.0, nusign=1,
     E_mu, theta, phi = dis.sample_dis_lepton(E_nu, rng, channel_mu)
 
     dmax = float(muon_range(Emuon))
-    accept, r, theta, phi, d = _project_to_detector(E_mu, theta, phi, dmax, n_mc, rng,
-                                                    mcs=mcs)
+    accept, r, theta, phi, E_mu, d = _project_to_detector(E_mu, theta, phi, dmax, n_mc,
+                                                          rng, mcs=mcs)  # E_mu -> at plane
 
     return {
         "E_nu": E_nu[accept],

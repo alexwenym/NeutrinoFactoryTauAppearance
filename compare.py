@@ -29,16 +29,25 @@ def _ks_1d(a, b):
     return float(np.max(np.abs(ca - cb)))
 
 
-def _norm_hist2d(r, theta, r_edges, th_edges):
-    """2D histogram of (theta, r) normalized to unit sum (a shape pdf over bins)."""
-    H, _, _ = np.histogram2d(theta, r, bins=[th_edges, r_edges])
-    s = H.sum()
-    return H / s if s > 0 else H
+def _asimov_Z(cols_c, cols_h, edges, N_core, N_halo, n_core_mc):
+    """Halo-detection Asimov significance from N-D shape histograms of the given observable
+    columns (H1 = core + halo vs H0 = core, same core -> isolates tau appearance, not nu_mu
+    disappearance). Empty core bins are floored at one core-MC-event's physical weight so
+    MC-statistical holes don't fake a background-free (infinite-significance) region."""
+    Hc, _ = np.histogramdd(np.column_stack(cols_c), bins=edges)
+    Hh, _ = np.histogramdd(np.column_stack(cols_h), bins=edges)
+    pc = Hc / Hc.sum() if Hc.sum() else Hc
+    ph = Hh / Hh.sum() if Hh.sum() else Hh
+    c = np.maximum(N_core * pc, N_core / max(n_core_mc, 1))
+    h = N_halo * ph
+    sig = h > 0
+    q0 = 2.0 * np.sum((c[sig] + h[sig]) * np.log1p(h[sig] / c[sig]) - h[sig])
+    return float(np.sqrt(max(q0, 0.0)))
 
 
 def run_comparison(Emuon=25.0, baseline=1300e3, nusign=1, deltaCP=0.0,
-                   n_mc=2_000_000, seed=0, n_rbins=40, n_thbins=40, verbose=True,
-                   detector=None, mcs=False,
+                   n_mc=2_000_000, seed=0, n_rbins=25, n_thbins=25, n_ebins=10,
+                   verbose=True, detector=None, mcs=False,
                    variant="accelerator", det_area_m2=100.0, years=10.0):
     """Run halo + core (osc) + core (no-osc) and report separability numbers, absolute
     through-going-muon counts, and the Asimov appearance significance.
@@ -85,34 +94,28 @@ def run_comparison(Emuon=25.0, baseline=1300e3, nusign=1, deltaCP=0.0,
     expo = det_area_m2 * 1e4 * years                 # cm^2 * yr
     N_halo, N_core, N_core0 = phi_halo * expo, phi_core * expo, phi_core0 * expo
 
-    # 2D (r, theta) shape pdfs scaled to absolute expected counts.
-    r_all = np.concatenate([halo["r"], core["r"]])
-    th_all = np.concatenate([th_h, th_c])
-    r_edges = np.linspace(0.0, np.percentile(r_all, 99.5), n_rbins + 1)
-    th_edges = np.linspace(0.0, np.percentile(th_all, 99.5), n_thbins + 1)
-    p_halo = _norm_hist2d(halo["r"], th_h, r_edges, th_edges)
-    p_core = _norm_hist2d(core["r"], th_c, r_edges, th_edges)
-    p_core0 = _norm_hist2d(core0["r"], core0["theta"], r_edges, th_edges)
+    # HALO-detection significance over increasingly informative observables. Common bin
+    # edges; the muon energy (E_mu at the plane) is a third axis -- the halo is softer
+    # (the tau decay carries energy into two unseen neutrinos), a handle beyond (r, theta).
+    r_edges = np.linspace(0.0, np.percentile(np.concatenate([halo["r"], core["r"]]), 99.5),
+                          n_rbins + 1)
+    th_edges = np.linspace(0.0, np.percentile(np.concatenate([th_h, th_c]), 99.5),
+                           n_thbins + 1)
+    e_edges = np.linspace(0.0, Emuon, n_ebins + 1)
+    ncmc = core["theta"].size
 
-    # HALO-detection significance: does the off-axis tau-decay halo stand out above the
-    # (calibrated) direct-nu_mu core? Same core in H1 and H0 -> isolates tau appearance,
-    # NOT the nu_mu disappearance (core rate change), which is a separate signature.
-    #   H1 = core + halo ,  H0 = core
-    # Empty-core bins are floored at one core-MC-event's physical weight so MC-statistical
-    # holes don't fake a background-free (infinite-significance) region.
-    c = N_core * p_core
-    h = N_halo * p_halo
-    c = np.maximum(c, N_core / max(core["theta"].size, 1))
-    sig = h > 0
-    q0 = 2.0 * np.sum((c[sig] + h[sig]) * np.log1p(h[sig] / c[sig]) - h[sig])
-    Z = float(np.sqrt(max(q0, 0.0)))
+    Z_theta = _asimov_Z([th_c], [th_h], [th_edges], N_core, N_halo, ncmc)
+    Z_rtheta = _asimov_Z([th_c, core["r"]], [th_h, halo["r"]], [th_edges, r_edges],
+                         N_core, N_halo, ncmc)
+    Z = _asimov_Z([th_c, core["r"], core["E_mu"]], [th_h, halo["r"], halo["E_mu"]],
+                  [th_edges, r_edges, e_edges], N_core, N_halo, ncmc)  # full (r,theta,E)
     disappearance = (1.0 - N_core / N_core0) if N_core0 else 0.0  # nu_mu core dimming
 
     summary = {
         "sb_ratio": sb_ratio,
         "phi_halo": phi_halo, "phi_core": phi_core,           # muons/cm^2/yr
         "N_halo": N_halo, "N_core": N_core, "N_core0": N_core0,
-        "Z": Z, "disappearance": disappearance,
+        "Z": Z, "Z_theta": Z_theta, "Z_rtheta": Z_rtheta, "disappearance": disappearance,
         "variant": variant, "det_area_m2": det_area_m2, "years": years,
         "halo_median_theta_mrad": float(np.median(th_h) * 1e3),
         "core_median_theta_mrad": float(np.median(th_c) * 1e3),
@@ -138,8 +141,9 @@ def run_comparison(Emuon=25.0, baseline=1300e3, nusign=1, deltaCP=0.0,
               (variant, det_area_m2, years, phi_halo, phi_core))
         print("  counts: N_halo=%.3g   N_core=%.3g   (S/B=%.2e)   nu_mu disappearance=%.1f%%" %
               (N_halo, N_core, N_halo / N_core if N_core else 0.0, disappearance * 100))
-        print("  Asimov: halo-detection Z = %.2f sigma  (2D r-theta, core fixed; "
-              "scales as sqrt(area*years))" % Z)
+        print("  Asimov: halo-detection Z (core fixed, scales as sqrt(area*years)):")
+        print("          theta=%.2f   +r=%.2f   +E=%.2f sigma  <- adding muon energy" %
+              (Z_theta, Z_rtheta, Z))
     return summary
 
 

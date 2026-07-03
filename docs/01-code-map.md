@@ -118,8 +118,9 @@ baseline. `do_osc(E, steps, density, U, MP, dm21, dm31, dm41, nuind, dL)`.
 ## `compare.py` — core-vs-halo separability + significance ✅ (no plots)
 - `run_comparison(...)` runs halo + core(osc) + core(no-osc); reports S/B, θ-shape metrics
   (KS, tails), **absolute counts** (via `normalization`), and the **halo-detection Asimov
-  Z** over the 2D (r,θ) plane (H1=core+halo vs H0=core, empty-core bins floored; ν_μ
-  disappearance reported separately). Z ∝ √(area·years).
+  Z** over the **3D (r, θ, E) space** (`_asimov_Z`; H1=core+halo vs H0=core, empty-core bins
+  floored). Reports the incremental Z(θ)/Z(r,θ)/Z(r,θ,E) — muon energy ~doubles it (softer
+  halo). ν_μ disappearance reported separately. Z ∝ √(area·years).
 - CLI: `python compare.py [--emuon 50 --baseline 2000 --nusign ±1 --deltacp --mcs
   --variant --area --years --sigma-theta-mrad --e-threshold --e-res --n-mc --seed]`
   (baseline km, area m²). All thread through flux/osc/σ/kin/geometry/norm.
