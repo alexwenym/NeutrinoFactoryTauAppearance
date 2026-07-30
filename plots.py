@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
@@ -8,6 +9,9 @@ from simulate import simulate_tau_muons, simulate_numu_cc_muons
 from detector import apply_detector
 import normalization
 
+_PLOT_DIR = "plots/detector_plane"
+os.makedirs(_PLOT_DIR, exist_ok=True)
+
 # Visualize the muon hits on the idealized detection plane: the direct-nu_mu CC "core"
 # (background) vs the tau-decay "halo" (signal). Shows why the halo is hard to isolate --
 # the two overlap heavily. Realistic: MCS in rock + nominal LArTPC response.
@@ -16,7 +20,9 @@ _DET = dict(sigma_theta=0.003, sigma_E_frac=0.15, E_threshold=1.0)  # nominal LA
 
 
 def make_plots(Emuon=25.0, baseline=1300e3, n_mc=1_500_000, seed=0,
-               out="detector_plane_hits"):
+               out=None):
+    if out is None:
+        out = os.path.join(_PLOT_DIR, "detector_plane_hits")
     FS = 20
     plt.rcParams.update({"font.size": FS, "axes.titlesize": FS,
                          "axes.labelsize": FS, "xtick.labelsize": FS - 3,

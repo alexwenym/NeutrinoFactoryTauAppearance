@@ -1,16 +1,20 @@
 __pycache__
 .venv/
+# generated plots (all in plots/)
+plots/detector_plane/*.png
+plots/detector_plane/*.pdf
+plots/scan/*.png
+plots/scan/*.pdf
+plots/scan/*.npz
+plots/cross_sections/*.png
+plots/cross_sections/*.pdf
+# legacy root-level plot names (from old runs before folder reorg)
 tau_muons_detector_plane.pdf
-detector_plane_hits.png
-detector_plane_hits.pdf
-detector_plane_optimum.png
-detector_plane_optimum.pdf
+detector_plane_*.png
+detector_plane_*.pdf
 scan_LE*.png
 scan_LE*.pdf
 scan_LE*.npz
-scan_LE_channels*.png
-scan_LE_channels*.pdf
-scan_LE_channels*.npz
 cross_sections.png
 cross_sections.pdf
 oschelper/build/

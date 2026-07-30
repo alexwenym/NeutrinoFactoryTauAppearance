@@ -1,9 +1,13 @@
+import os
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from compare import run_comparison
+
+SCAN_DIR = "plots/scan"
+os.makedirs(SCAN_DIR, exist_ok=True)
 
 # Scan the halo-detection significance over beam energy (log 25-200 GeV, within the GENIE
 # table range) and baseline. Everything else fixed: accelerator beam, nominal LArTPC, MCS,
@@ -73,7 +77,9 @@ def run_scan_channels(nE=18, nL=22, n_mc=800_000, seed=0, area_m2=100.0, years=1
                 area_m2=area_m2, years=years, nusign=nusign)
 
 
-def plot_scan(res, out="scan_LE", key="Z"):
+def plot_scan(res, out=None, key="Z"):
+    if out is None:
+        out = os.path.join(SCAN_DIR, "scan_LE")
     Z, E, L = res[key], res["E"], res["L"]
 
     FS = 18   # base font size
@@ -119,7 +125,9 @@ def plot_scan(res, out="scan_LE", key="Z"):
           % (E[ib], L[jb], Z[ib, jb], out))
 
 
-def plot_scan_both(res_nu, res_nubar, out="scan_LE_charges", key="Z"):
+def plot_scan_both(res_nu, res_nubar, out=None, key="Z"):
+    if out is None:
+        out = os.path.join(SCAN_DIR, "scan_LE_charges")
     """Side-by-side heatmaps for nu (mu- beam) and nubar (mu+ beam)."""
     FS = 18
     plt.rcParams.update({"font.size": FS, "axes.titlesize": FS,
@@ -173,7 +181,10 @@ def plot_scan_both(res_nu, res_nubar, out="scan_LE_charges", key="Z"):
     print("saved %s.png" % out)
 
 
-def plot_scan_channels(res, out="scan_LE_channels"):
+def plot_scan_channels(res, out=None):
+    if out is None:
+        label = "nu" if res.get("nusign", 1) == 1 else "nubar"
+        out = os.path.join(SCAN_DIR, "scan_LE_channels_%s" % label)
     """Three-panel (L,E) heatmap: nu_mu only | nu_e only | combined."""
     E, L = res["E"], res["L"]
     Z_sets = [
@@ -240,22 +251,28 @@ def plot_scan_channels(res, out="scan_LE_channels"):
 
 if __name__ == "__main__":
     import sys
-    if "--channels" in sys.argv:
+    P = os.path.join  # shorthand
+    if "--channels-nubar" in sys.argv:
+        print("=== channels scan (mu+ beam, numubar + nue + combined) ===")
+        res = run_scan_channels(nusign=-1)
+        np.savez(P(SCAN_DIR, "scan_LE_channels_nubar.npz"), **res)
+        plot_scan_channels(res)
+    elif "--channels" in sys.argv:
         print("=== channels scan (mu- beam, numu + nue + combined) ===")
         res = run_scan_channels(nusign=1)
-        np.savez("scan_LE_channels.npz", **res)
+        np.savez(P(SCAN_DIR, "scan_LE_channels_nu.npz"), **res)
         plot_scan_channels(res)
     elif "--charges" in sys.argv:
         print("=== nu scan (mu- beam) ===")
         res_nu = run_scan(nusign=1)
-        np.savez("scan_LE_nu.npz", **res_nu)
+        np.savez(P(SCAN_DIR, "scan_LE_nu.npz"), **res_nu)
         print("=== nubar scan (mu+ beam) ===")
         res_nubar = run_scan(nusign=-1)
-        np.savez("scan_LE_nubar.npz", **res_nubar)
+        np.savez(P(SCAN_DIR, "scan_LE_nubar.npz"), **res_nubar)
         plot_scan_both(res_nu, res_nubar)
-        plot_scan(res_nu,   out="scan_LE_nu")
-        plot_scan(res_nubar, out="scan_LE_nubar")
+        plot_scan(res_nu,   out=P(SCAN_DIR, "scan_LE_nu"))
+        plot_scan(res_nubar, out=P(SCAN_DIR, "scan_LE_nubar"))
     else:
         res = run_scan()
-        np.savez("scan_LE.npz", **res)
+        np.savez(P(SCAN_DIR, "scan_LE.npz"), **res)
         plot_scan(res)

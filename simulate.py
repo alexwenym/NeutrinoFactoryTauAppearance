@@ -298,5 +298,6 @@ if __name__ == "__main__":
     axes[1].set_ylabel("muons / bin")
     fig.suptitle(r"$\nu_\mu\to\nu_\tau$ appearance muons ($E_\mu=25$ GeV, L=1300 km)")
     fig.tight_layout()
-    fig.savefig("tau_muons_detector_plane.pdf")
-    print("saved tau_muons_detector_plane.pdf")
+    import os; os.makedirs("plots/detector_plane", exist_ok=True)
+    fig.savefig("plots/detector_plane/tau_muons_detector_plane.pdf")
+    print("saved plots/detector_plane/tau_muons_detector_plane.pdf")
