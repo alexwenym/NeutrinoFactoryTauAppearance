@@ -86,9 +86,9 @@ def oscillate(E, baseline, nuind, nusign, dL=1e2, # m
     steps = np.linspace(0, baseline, int(baseline/dL))
 
     B = steps[1:]/1e3
-    cosalpha =  B[-1] / (2*R_earth)
+    cosalpha = min(B[-1] / (2*R_earth), 1.0)  # clamp: chord cannot exceed Earth diameter
 
-    depths = R_earth - np.sqrt(B**2 + R_earth**2 - 2*B*R_earth*cosalpha)
+    depths = R_earth - np.sqrt(np.maximum(0.0, B**2 + R_earth**2 - 2*B*R_earth*cosalpha))
 
     density = np.interp(depths, DPdepth, DPdensity, left=DPdensity[0], right=DPdensity[-1])
     density += rhoshift

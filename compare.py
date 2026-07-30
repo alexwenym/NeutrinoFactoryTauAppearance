@@ -23,6 +23,8 @@ def _channel_weight(out):
 
 def _ks_1d(a, b):
     """Two-sample Kolmogorov-Smirnov distance (max |CDF_a - CDF_b|), pure numpy."""
+    if a.size == 0 or b.size == 0:
+        return 0.0
     grid = np.sort(np.concatenate([a, b]))
     ca = np.searchsorted(np.sort(a), grid, side="right") / a.size
     cb = np.searchsorted(np.sort(b), grid, side="right") / b.size
