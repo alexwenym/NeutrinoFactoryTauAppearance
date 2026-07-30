@@ -1,6 +1,6 @@
 import numpy as np
 
-from simulate import simulate_tau_muons, simulate_numu_cc_muons
+from simulate import simulate_tau_muons, simulate_numu_cc_muons, simulate_nue_tau_muons
 import normalization
 
 # Numeric comparison of the tau-decay "halo" against the direct-nu_mu CC "core" at the
@@ -31,17 +31,22 @@ def _ks_1d(a, b):
     return float(np.max(np.abs(ca - cb)))
 
 
-def _asimov_Z(cols_c, cols_h, edges, N_core, N_halo, n_core_mc):
+def _asimov_Z(cols_c, halo_list, edges, N_core, n_core_mc):
     """Halo-detection Asimov significance from N-D shape histograms of the given observable
     columns (H1 = core + halo vs H0 = core, same core -> isolates tau appearance, not nu_mu
     disappearance). Empty core bins are floored at one core-MC-event's physical weight so
-    MC-statistical holes don't fake a background-free (infinite-significance) region."""
+    MC-statistical holes don't fake a background-free (infinite-significance) region.
+
+    halo_list: list of (cols_h, N_h) pairs; supports multiple simultaneous halo sources
+    (e.g. numu-channel + nue-channel combined) by summing their expected histograms."""
     Hc, _ = np.histogramdd(np.column_stack(cols_c), bins=edges)
-    Hh, _ = np.histogramdd(np.column_stack(cols_h), bins=edges)
     pc = Hc / Hc.sum() if Hc.sum() else Hc
-    ph = Hh / Hh.sum() if Hh.sum() else Hh
     c = np.maximum(N_core * pc, N_core / max(n_core_mc, 1))
-    h = N_halo * ph
+    h = np.zeros_like(Hc)
+    for cols_h, N_h in halo_list:
+        Hh, _ = np.histogramdd(np.column_stack(cols_h), bins=edges)
+        ph = Hh / Hh.sum() if Hh.sum() else Hh
+        h += N_h * ph
     sig = h > 0
     q0 = 2.0 * np.sum((c[sig] + h[sig]) * np.log1p(h[sig] / c[sig]) - h[sig])
     return float(np.sqrt(max(q0, 0.0)))
@@ -50,10 +55,13 @@ def _asimov_Z(cols_c, cols_h, edges, N_core, N_halo, n_core_mc):
 def run_comparison(Emuon=25.0, baseline=1300e3, nusign=1, deltaCP=0.0,
                    n_mc=2_000_000, seed=0, n_rbins=25, n_thbins=25, n_ebins=10,
                    verbose=True, detector=None, mcs=False,
-                   variant="accelerator", det_area_m2=100.0, years=10.0):
+                   variant="accelerator", det_area_m2=100.0, years=10.0,
+                   include_nue=False):
     """Run halo + core (osc) + core (no-osc) and report separability numbers, absolute
     through-going-muon counts, and the Asimov appearance significance.
 
+    include_nue: also simulate the nu_e->nu_tau halo from the same muon-decay beam and
+    compute Z_nue (nue halo only) and Z_combined (numu + nue halos together vs core).
     mcs: apply Highland multiple-Coulomb scattering in the rock (propagation physics).
     detector: optional dict of detector.apply_detector kwargs (footprint/smearing/
     threshold) applied to every sample. None -> truth-level detection plane (default).
@@ -68,12 +76,17 @@ def run_comparison(Emuon=25.0, baseline=1300e3, nusign=1, deltaCP=0.0,
     core0 = simulate_numu_cc_muons(Emuon=Emuon, baseline=baseline, deltaCP=deltaCP,
                                    nusign=nusign, n_mc=n_mc, seed=seed + 2, osc_on=False,
                                    mcs=mcs)
+    if include_nue:
+        halo_nue = simulate_nue_tau_muons(Emuon=Emuon, baseline=baseline, deltaCP=deltaCP,
+                                          nusign=nusign, n_mc=n_mc, seed=seed + 3, mcs=mcs)
 
     if detector is not None:
         from detector import apply_detector
         halo = apply_detector(halo, seed=seed + 10, **detector)
         core = apply_detector(core, seed=seed + 11, **detector)
         core0 = apply_detector(core0, seed=seed + 12, **detector)
+        if include_nue:
+            halo_nue = apply_detector(halo_nue, seed=seed + 13, **detector)
 
     w_halo = _channel_weight(halo)
     w_core = _channel_weight(core)
@@ -106,18 +119,35 @@ def run_comparison(Emuon=25.0, baseline=1300e3, nusign=1, deltaCP=0.0,
     e_edges = np.linspace(0.0, Emuon, n_ebins + 1)
     ncmc = core["theta"].size
 
-    Z_theta = _asimov_Z([th_c], [th_h], [th_edges], N_core, N_halo, ncmc)
-    Z_rtheta = _asimov_Z([th_c, core["r"]], [th_h, halo["r"]], [th_edges, r_edges],
-                         N_core, N_halo, ncmc)
-    Z = _asimov_Z([th_c, core["r"], core["E_mu"]], [th_h, halo["r"], halo["E_mu"]],
-                  [th_edges, r_edges, e_edges], N_core, N_halo, ncmc)  # full (r,theta,E)
+    Z_theta = _asimov_Z([th_c], [([th_h], N_halo)], [th_edges], N_core, ncmc)
+    Z_rtheta = _asimov_Z([th_c, core["r"]], [([th_h, halo["r"]], N_halo)],
+                         [th_edges, r_edges], N_core, ncmc)
+    Z = _asimov_Z([th_c, core["r"], core["E_mu"]], [([th_h, halo["r"], halo["E_mu"]], N_halo)],
+                  [th_edges, r_edges, e_edges], N_core, ncmc)  # full (r,theta,E)
     disappearance = (1.0 - N_core / N_core0) if N_core0 else 0.0  # nu_mu core dimming
+
+    if include_nue:
+        phi_halo_nue = normalization.muon_flux(halo_nue, Emuon, variant)
+        N_halo_nue = phi_halo_nue * expo
+        th_h_nue = halo_nue["theta"]
+        # nue-only significance (same core background)
+        Z_nue = _asimov_Z([th_c, core["r"], core["E_mu"]],
+                          [([th_h_nue, halo_nue["r"], halo_nue["E_mu"]], N_halo_nue)],
+                          [th_edges, r_edges, e_edges], N_core, ncmc)
+        # combined numu + nue vs same core
+        Z_combined = _asimov_Z(
+            [th_c, core["r"], core["E_mu"]],
+            [([th_h, halo["r"], halo["E_mu"]], N_halo),
+             ([th_h_nue, halo_nue["r"], halo_nue["E_mu"]], N_halo_nue)],
+            [th_edges, r_edges, e_edges], N_core, ncmc)
 
     summary = {
         "sb_ratio": sb_ratio,
         "phi_halo": phi_halo, "phi_core": phi_core,           # muons/cm^2/yr
         "N_halo": N_halo, "N_core": N_core, "N_core0": N_core0,
         "Z": Z, "Z_theta": Z_theta, "Z_rtheta": Z_rtheta, "disappearance": disappearance,
+        **({"N_halo_nue": N_halo_nue, "Z_nue": Z_nue, "Z_combined": Z_combined}
+           if include_nue else {}),
         "variant": variant, "det_area_m2": det_area_m2, "years": years,
         "halo_median_theta_mrad": float(np.median(th_h) * 1e3),
         "core_median_theta_mrad": float(np.median(th_c) * 1e3),

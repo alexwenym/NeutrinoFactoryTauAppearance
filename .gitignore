@@ -8,6 +8,9 @@ detector_plane_optimum.pdf
 scan_LE*.png
 scan_LE*.pdf
 scan_LE*.npz
+scan_LE_channels*.png
+scan_LE_channels*.pdf
+scan_LE_channels*.npz
 cross_sections.png
 cross_sections.pdf
 oschelper/build/

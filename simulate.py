@@ -1,6 +1,6 @@
 import numpy as np
 
-from flux import numu_flux
+from flux import numu_flux, nue_flux
 from osc import oscillate
 from tau_decay import decay_to_muon, BR_TAU_TO_MU
 import dis_kinematics as dis
@@ -230,6 +230,51 @@ def simulate_numu_cc_muons(Emuon=25.0, baseline=1300e3, deltaCP=0.0, nusign=1,
         "accept_frac": float(accept.mean()),
         "w_integral": w_integral,
         "BR": 1.0,
+    }
+
+
+def simulate_nue_tau_muons(Emuon=25.0, baseline=1300e3, deltaCP=0.0, nusign=1,
+                           Pmuon=0.0, n_mc=2_000_000, n_grid=200, seed=0, mcs=False):
+    """
+    Generate tau-decay muons from the nu_e component of the muon-decay beam.
+
+    A mu- beam (nusign=+1) produces nu_mu + nu_ebar. The nu_ebar component oscillates
+    as nu_ebar -> nu_taubar (osc nusign=-1, nuind=0), produces tau+ via nutaubar CC,
+    which decays tau+ -> mu+. A mu+ beam (nusign=-1) produces the CP conjugate.
+
+    The oscillation sign is opposite to the beam nusign: osc_nusign = -nusign.
+    Same dict structure as simulate_tau_muons.
+    """
+    rng = np.random.default_rng(seed)
+
+    # nu_e component has opposite lepton sign to the nu_mu component
+    osc_nusign = -nusign                                   # nu_ebar for mu- beam, nu_e for mu+
+    mucharge   = -nusign                                   # mu- (nusign=+1) -> mucharge=-1 -> nu_ebar flux
+    channel_tau = "nutaubar" if osc_nusign < 0 else "nutau"
+
+    Egrid = np.linspace(0.2, Emuon, n_grid)
+    amp = oscillate(Egrid, baseline, 0, osc_nusign, deltaCP=deltaCP)  # nuind=0: nu_e start
+    P_grid = np.abs(amp[2]) ** 2                           # nu_tau component
+    flux_grid = nue_flux(Emuon, 1.0, Pmuon, Egrid, 1.0, baseline, mucharge=mucharge)
+    xs_grid = dis.sigma(Egrid, channel_tau)
+    w_grid = flux_grid * P_grid * xs_grid
+    w_integral = float(np.trapz(w_grid, Egrid))
+
+    cdf = np.cumsum(w_grid); cdf /= cdf[-1]
+    E_nu = np.interp(rng.uniform(0.0, 1.0, n_mc), cdf, Egrid)
+
+    E_tau, theta_tau, phi_tau = dis.sample_dis_lepton(E_nu, rng, channel_tau)
+    E_mu, theta_rel, phi_rel  = decay_to_muon(E_tau, rng, nusign=osc_nusign)
+    theta, phi = _compose_directions(theta_tau, phi_tau, theta_rel, phi_rel)
+
+    dmax = float(muon_range(Emuon))
+    accept, r, theta, phi, E_mu, d = _project_to_detector(E_mu, theta, phi, dmax, n_mc,
+                                                          rng, mcs=mcs)
+    return {
+        "E_nu": E_nu[accept], "E_mu": E_mu[accept],
+        "theta": theta[accept], "r": r[accept], "phi": phi[accept],
+        "dmax": dmax, "accept_frac": float(accept.mean()),
+        "w_integral": w_integral, "BR": BR_TAU_TO_MU,
     }
 
 
